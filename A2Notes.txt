@@ -3,7 +3,7 @@ Functional/Technical aspects, Implementation details of:
 1) Opponent detection			- Green hat recognition, Searching, Last-known location
 						 (TODO: Fix jerky course corrections, buffer img?
 							Only rotate twice (Odom???), then Mapping)
-2) Obstacle avoidance			- 	 (TODO: LaserScan to stop from hitting obstacles)
+2) Obstacle avoidance			- 	 (TODO: DEBUG LASERSCAN)
 3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
 4) "Choice of relevant parameters"	- Linear/Angular Speeds, search rotation amount?
 5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below)
@@ -43,7 +43,7 @@ Functional/Technical aspects, Implementation details of:
 
 
 TO-DO:
-1) Implement LaserScans
+1) Implement AND DEBUG LaserScans
 	- Obstacle Avoidance
 	- Prevent Predator from hitting prey
 ?) Limit search rotations to 2 for efficiency
