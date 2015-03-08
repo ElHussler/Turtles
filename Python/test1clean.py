@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 #LH
 
-################ IMPORTANT!!! WHY DOES PREDATOR INSTANCE HAVE NO ATTRIBUTE 'CMD_VEL_PUB'??????? ######################
-
 import rospy
 import cv2
 import numpy as np
@@ -16,7 +14,7 @@ class Predator():
     """A class to make a Predator vehicle"""
     
     segmentedImage = 0
-    hatLastSeenIn = 0
+    lastRelativeHatLocation = "none"
     blobSize = 0
     
     def __init__(self, name):
@@ -26,23 +24,23 @@ class Predator():
         cv2.namedWindow("Binary Mask: Hat", 1)
         cv2.startWindowThread()
         
+        self.cmd_vel_pub = rospy.Publisher(
+            "/turtlebot_1/cmd_vel",
+            Twist,
+            queue_size=1
+        )
         self.image_sub = rospy.Subscriber(
             "/turtlebot_1/camera/rgb/image_raw",
             Image,
             callback=self.image_callback,
             queue_size=1
         )
-        self.laser_sub = rospy.Subscriber(
-            "/turtlebot_1/scan",
-            LaserScan,
-            callback=self.laser_callback,
-            queue_size=1
-        )
-        self.cmd_vel_pub = rospy.Publisher(
-            "/turtlebot_1/cmd_vel",
-            Twist,
-            queue_size=1
-        )
+#        self.laser_sub = rospy.Subscriber(
+#            "/turtlebot_1/scan",
+#            LaserScan,
+#            callback=self.laser_callback,
+#            queue_size=1
+#        )
         
         
     def image_callback(self, img_kinect):
@@ -59,21 +57,53 @@ class Predator():
         
         img_binary_mask_normalised = self.find_green_hat(img_cv, img_height, img_width)
         
-        img_split = self.split_kinect_image(img_binary_mask_normalised)
-        
-        normalised_mean = self.analyse_image(img_split)
-        
         cv2.imshow('Binary Mask: Hat', self.segmentedImage)
         
-####### CREATE BUFFER IMAGE OF MASK'S MIDDLE 300 COLUMNS
-####### IF WHITE PIXEL SUM WITHIN BUFFER IMAGE RANGE IS VERY CLOSE TO BLOBSIZE
-#######     PUBLISH TWIST MESSAGE
-#######     PRINT "CORRECTED COURSE TO KEEP PREY IN ACCEPTABLE FIELD OF VIEW"
-####### ELSE
-#######     PRINT "NO CORRECTION NEEDED, HAT WITHIN ACCEPTABLE FIELD OF VIEW"
+        if (img_binary_mask_normalised.has_green_hat):
+            print "Hat detected"     
+            
+            img_split = self.split_kinect_image(img_binary_mask_normalised.img)        
+            normalised_mean = self.analyse_image(img_split)
         
-        twist_msg = self.mean_twist(normalised_mean[0], normalised_mean[1])
+          # Fix L-R jerkiness when hat found, to only correct when necessary:
+    ####### CREATE BUFFER IMAGE OF MASK'S MIDDLE 300 COLUMNS
+    ####### IF WHITE PIXEL SUM WITHIN BUFFER IMAGE RANGE IS VERY CLOSE TO BLOBSIZE
+    #######     PUBLISH TWIST MESSAGE
+    #######     PRINT "CORRECTED COURSE TO KEEP PREY IN ACCEPTABLE FIELD OF VIEW"
+    ####### ELSE
+    #######     PRINT "NO CORRECTION NEEDED, HAT WITHIN ACCEPTABLE FIELD OF VIEW"
+            
+            twist_msg = self.mean_twist(normalised_mean[0], normalised_mean[1])
+            self.cmd_vel_pub.publish(twist_msg)
+        else:
+            print "No Hat detected"
+            self.search_for_prey(self.lastRelativeHatLocation)
+            
+        
+        
+    def search_for_prey(self, lastRelativeHatLocation):
+        
+        maxSpeed = float(0.2)
+        maxTurn = np.pi/4
+        
+        twist_msg = Twist()
+        twist_msg.linear.x = maxSpeed * 0
+        
+        if (lastRelativeHatLocation == "left"):
+            twist_msg.angular.z = maxTurn * 0.8
+            print "Hat last seen in ", lastRelativeHatLocation
+        elif (lastRelativeHatLocation == "right"):
+            twist_msg.angular.z = maxTurn * -0.8
+            print "Hat last seen in ", lastRelativeHatLocation
+        elif (lastRelativeHatLocation == "none"):
+            twist_msg.angular.z = maxTurn * 0.6
+            print "This particular turtle has never seen a hat :("
+            print "Using default (slower anticlockwise) search motion..."
+        else:
+            twist_msg.angular.z = maxTurn * 0
+        
         self.cmd_vel_pub.publish(twist_msg)
+        
         
         
     def find_green_hat(self, img_cv, img_height, img_width):
@@ -98,7 +128,16 @@ class Predator():
         img_binary_mask = cv2.inRange(img_hsv, lower_green, upper_green)
         self.segmentedImage = img_binary_mask
         
-        img_binary_mask_normalised = img_binary_mask / 255
+        img_binary_mask_normalised = Kinect_Image()
+
+        img_binary_mask_normalised.img = img_binary_mask / 255
+        
+        sum_pixels = np.sum(img_binary_mask_normalised.img)
+        
+        if (sum_pixels > 25):
+            img_binary_mask_normalised.has_green_hat = bool(True)
+        else:
+            img_binary_mask_normalised.has_green_hat = bool(False)
         
         return img_binary_mask_normalised
         
@@ -125,16 +164,16 @@ class Predator():
         print "Hat Pixels in RIGHT image:", sum_right
         
         if ((sum_left == 0) & (sum_right > 0)):
-            self.hatLastSeenIn = "right"
+            self.lastRelativeHatLocation = "right"
         elif ((sum_right == 0) & (sum_left > 0)):
-            self.hatLastSeenIn = "left"
+            self.lastRelativeHatLocation = "left"
         
         left_right_pixel_difference = (float(sum_left) - float(sum_right))
         total_white_pixels = (float(sum_left) + float(sum_right))
         
         print "LEFT/RIGHT Hat pixel difference: ", left_right_pixel_difference
         print "Total Hat pixels: ", total_white_pixels
-        print "Hat last seen in: ", self.hatLastSeenIn
+        print "Last relative hat location: ", self.lastRelativeHatLocation
         
         linear = 1
         
@@ -164,29 +203,35 @@ class Predator():
         return twist_msg
         
         
-#    def laser_callback(self, msg):
-#        
-#        ranges = msg.ranges
-#        min_distance = np.nanmin(ranges)
-#        rospy.loginfo("Minimum distance: %f" % min_distance)
-#        twist_msg = Twist()
-#        
-#        if min_distance < 1:
-#            rospy.loginfo("Turn")
-#            rate = rospy.Rate(10)
-#            now = rospy.Time.now().to_sec()
-#            end_time = now + 1
-#            angle_velocity = 0.5
-#            while rospy.Time.now().to_sec() < end_time:
-#                twist_msg.linear.x = 0.0
-#                twist_msg.angular.z = angle_velocity
-#                self.cmd_vel_pub.publish(twist_msg)
-#                rate.sleep()
-#        else:
-#            rospy.loginfo("Straight")
-#            twist_msg.linear.x = 0.7
-#            twist_msg.angular.z = 0.0
-#            self.cmd_vel_pub.publish(twist_msg)
+    def laser_callback(self, msg):
+        
+        ranges = msg.ranges
+        min_distance = np.nanmin(ranges)
+        rospy.loginfo("Minimum distance: %f" % min_distance)
+        twist_msg = Twist()
+        
+        if min_distance < 1:
+            rospy.loginfo("Turn")
+            rate = rospy.Rate(10)
+            now = rospy.Time.now().to_sec()
+            end_time = now + 1
+            angle_velocity = 0.5
+            while rospy.Time.now().to_sec() < end_time:
+                twist_msg.linear.x = 0.0
+                twist_msg.angular.z = angle_velocity
+                self.cmd_vel_pub.publish(twist_msg)
+                rate.sleep()
+        else:
+            rospy.loginfo("Straight")
+            twist_msg.linear.x = 0.7
+            twist_msg.angular.z = 0.0
+            self.cmd_vel_pub.publish(twist_msg)
+        
+class Kinect_Image():
+    
+    def __init__(self):
+        self.img = 0
+        self.has_green_hat = bool()
             
 
 if __name__ == '__main__':

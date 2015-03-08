@@ -21,7 +21,7 @@
 	spyder
 3) Create and save .py file
 4) Make script executable e.g:
-	chmod a+x ~/catkin_ws/src/commanding_velocity/scripts/command_velocity.py
+	chmod a+x ~/catkin_ws/src/commanding_velocity/scripts/<filename>.py
 
 ---RUN CODE---
 1) NT, SEV, Run

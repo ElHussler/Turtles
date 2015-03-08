@@ -1,13 +1,15 @@
 ---DESIGN---
 Functional/Technical aspects, Implementation details of:
-1) Opponent detection
-2) Obstacle avoidance
-3) Player behaviour (attack/escape)
-4) "Choice of relevant parameters"
-5) Additional functionality
+1) Opponent detection			- Green hat recognition, Searching, Last-known location
+						 (TODO: Fix jerky course corrections, buffer img?
+							Only rotate twice (Odom???), then Mapping)
+2) Obstacle avoidance			- 	 (TODO: LaserScan to stop from hitting obstacles)
+3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
+4) "Choice of relevant parameters"	- Linear/Angular Speeds, search rotation amount?
+5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below)
 
 ---CODE IMPLEMENTATION---
-1) Well-commented and structured code
+1) Well-commented and structured code	-	 (TODO: Add adequate comments)
 
 ---TESTING---
 1) Functionality (efficient implementation)
@@ -41,6 +43,10 @@ Functional/Technical aspects, Implementation details of:
 
 
 TO-DO:
-- Make SIM bot chase green hat:
-	1) Need to normalise binary means for braitenberg using binary mask?
-	2) Use intensities/normalised intensities to construct Twist message
+1) Implement LaserScans
+	- Obstacle Avoidance
+	- Prevent Predator from hitting prey
+?) Limit search rotations to 2 for efficiency
+	- Next step is implementing Mapping and traversing blind spots
+?) Fix jerky course corrections
+	- Set up buffer image of middle columns, if blob is within buffer, don't post Twist message
