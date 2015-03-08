@@ -1,0 +1,46 @@
+---DESIGN---
+Functional/Technical aspects, Implementation details of:
+1) Opponent detection
+2) Obstacle avoidance
+3) Player behaviour (attack/escape)
+4) "Choice of relevant parameters"
+5) Additional functionality
+
+---CODE IMPLEMENTATION---
+1) Well-commented and structured code
+
+---TESTING---
+1) Functionality (efficient implementation)
+2) Performance (time/distance accuracy)
+3) System limitations
+4) Possible improvements
+5) Influence of system parameters
+
+---REPORT---
+2500 words covering:
+1) Design
+2) Evaluation
+3) References (Textbooks, Websites)
+
+---DEMO---
+1) Structured
+2) Well-prepared
+3) Highlight additional features
+
+---EXTRA---
+1) Advanced object detection
+	-Colour-based learning
+	-Extra visual cues
+	-Multi-object handling
+	-Localisation
+2) Behaviour coordination
+	-Finite State Machine
+3) Predator AND Prey
+4) Spatial awareness
+	-Analysis of hiding places
+
+
+TO-DO:
+- Make SIM bot chase green hat:
+	1) Need to normalise binary means for braitenberg using binary mask?
+	2) Use intensities/normalised intensities to construct Twist message

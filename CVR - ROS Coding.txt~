@@ -1,0 +1,29 @@
+---WORKSPACE SETUP---
+1) Create workspace directory:
+	mkdir -p ~/catkin_ws/src; cd ~/catkin_ws/src; catkin_init_workspace .;
+2) Create package (with specific dependencies):
+	catkin_create_pkg commanding_velocity rospy std_msgs geometry_msgs
+3) Create scripts directory:
+	mkdir ~/catkin_ws/src/commanding_velocity/scripts
+4) Build workspace:
+	cd ~/catkin_ws
+	catkin_make
+5) Source Env Variable in every new terminal:
+  SEV	 source ~/catkin_ws/devel/setup.bash
+
+---SIM/TURTLEBOT, IDE, CODE FILES---
+1a) Run roscore for simulator:
+	roscore
+1b) Run turtlebot setup code:
+	see ---TURTLEBOT SETUP, CONNECT---
+2) NT, SEV, Run Spyder
+	source ~/catkin_ws/devel/setup.bash
+	spyder
+3) Create and save .py file
+4) Make script executable e.g:
+	chmod a+x ~/catkin_ws/src/commanding_velocity/scripts/command_velocity.py
+
+---RUN CODE---
+1) NT, SEV, Run
+  SEV	source ~/catkin_ws/devel/setup.bash
+	rosrun commanding_velocity command_velocity.py

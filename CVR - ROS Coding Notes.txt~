@@ -1,0 +1,19 @@
+---TURTLEBOT CODE NOTES---
++) Required lines:
+	#!/usr/bin/env python
+	# -*- coding: utf-8 -*-
+
+	import rospy				# ROS Python library
+	import numpy as np			# Math library
+	from geometry_msgs.msg import Twist	# scan message type
+	from sensor_msgs.msg import LaserScan	# cmd_vel message type
+	from random import choice, randint	# random operators
+	
+	def __init__(self, name):		# Constructor with name parameter
+		
++) Straight velocity (m/s, 0.6 limit):
+	Twist.linear.x
++) Sideways velocity (rad/s, PI limit):
+	Twist.angular.z
++) Indexing:
+	left_img = x[np.array([0:img.width/2,:]), np.array([0:img.height/2,:])) ???

@@ -1,0 +1,15 @@
+---SIMULATOR START---
+1) Load gazebo with empty world:
+	roslaunch turtlebot_gazebo turtlebot_world.launch world_file:=$(rospack find turtlebot_gazebo)/worlds/empty.world
+2) NT, Load keyboard robot operation:
+	roslaunch kobuki_keyop keyop.launch
+3) NT, Load RViz:
+	roslaunch turtlebot_rviz_launchers view_robot.launch
+
+---SIMULATOR CLC---
+1) Load Gazebo with CompLabC:
+	roslaunch uol_turtlebot_simulator labc.launch
+2) NT, Load RViz:
+	roslaunch uol_turtlebot_simulator view_navigation.launch
+3) NT, Use keyboard teleop:
+	roslaunch uol_turtlebot_simulator keyop.launch robot_name:=turtlebot_1
