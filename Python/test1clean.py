@@ -10,8 +10,8 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 
-################### LASER_CALLBACK AND SEARCH_FOR_PREY CURRENTLY SEND CONFLICTING
-################### TWIST MESSAGES, RESULTING IN ENDLESS LOOP... WHAT DO?!
+################### ADD 'BUMPER' SUBSCRIBER TO ENABLE "WIN CONDITION"
+################### 
 
 class KinectImage():
     """Holds image data and bool stating whether it contains Prey vehicle"""
@@ -23,7 +23,8 @@ class KinectImage():
         
 class Predator():
     """Predator vehicle with search, recognition, movement, obstacle avoidance"""
-    
+
+    # Instantiate instance variables and topic publishers & subscribers
     def __init__(self, name):
         rospy.loginfo("Starting node %s" % name)
         
@@ -32,7 +33,11 @@ class Predator():
         cv2.startWindowThread()        
         
         self.last_relative_hat_location = "none"
-        self.collision_imminent = bool(False)
+        self.is_collision_imminent = bool(False)
+        self.is_avoiding_straight = bool(False)
+        self.is_avoiding_rotate = bool(False)
+        self.has_avoided_rotate = bool(False)
+        self.avoid_count = 0
         self.segmented_image = 0
         self.blob_size = 0
         
@@ -55,6 +60,7 @@ class Predator():
         )
         
         
+    # Takes SIM/BOT image to use for image recognition-based movement
     def image_callback(self, img_kinect):
         
         print "======== NEW IMAGE ========"        
@@ -87,29 +93,31 @@ class Predator():
             #twist_msg = self.mean_twist(normalised_mean[0], normalised_mean[1])
             #self.cmd_vel_pub.publish(twist_msg)
             
-            if (self.collision_imminent != bool(True)):
+            if (self.is_collision_imminent != bool(True)):
                 self.publish_twist_msg(movement_data[0], movement_data[1])
             else:
                 print "Prey catching postponed to avoid obstacle"
         else:
-            if (self.collision_imminent != bool(True)):            
+            if (self.is_collision_imminent != bool(True)):            
                 print "No Hat detected"
                 self.search_for_prey()
             else:
                 print "Prey searching postponed to avoid obstacle"
             
         
-        
+    # Uses last known prey location to search for it in most likely direction
     def search_for_prey(self):
         
         if (self.last_relative_hat_location == "left"):
             angular_velocity = 0.8
-            print "Hat last seen in ", self.last_relative_hat_location
+            print "Hat last seen on", self.last_relative_hat_location
+            print "Looking", self.last_relative_hat_location
         elif (self.last_relative_hat_location == "right"):
             angular_velocity = -0.8
-            print "Hat last seen in ", self.last_relative_hat_location
+            print "Hat last seen on", self.last_relative_hat_location
+            print "Looking", self.last_relative_hat_location
         elif (self.last_relative_hat_location == "none"):
-            angular_velocity = 0.6
+            angular_velocity = 1
             print "No previous Hat data"
             print "Using default search motion..."
         else:
@@ -118,7 +126,7 @@ class Predator():
         self.publish_twist_msg(0, angular_velocity)
         
         
-        
+    # Takes CV image, cleans, colour slices, and creates a binary mask of the green hat
     def find_green_hat(self, img_cv, img_height, img_width):
         
         img_clean = cv2.GaussianBlur(img_cv, (5,5), 0)        
@@ -155,6 +163,7 @@ class Predator():
         
         return img_binary_mask_normalised
         
+        
     # Takes a 640*480 image and returns two left and right side 320*480 images
     def split_kinect_image(self, img_mask):        
         
@@ -165,7 +174,7 @@ class Predator():
         
         return img_split
         
-        
+    # METHOD DESCRIPTION    
     def analyse_image(self, img_split):
         
         img_mask_left = img_split[0]
@@ -213,7 +222,7 @@ class Predator():
         max_linear_velocity = float(0.2)
         max_angular_velocity = np.pi/4
         
-        twist_msg = Twist()        
+        twist_msg = Twist()
         twist_msg.linear.x = max_linear_velocity * linear_velocity
         twist_msg.angular.z = max_angular_velocity * angular_velocity
         
@@ -226,26 +235,58 @@ class Predator():
         min_distance = np.nanmin(ranges)
         rospy.loginfo("Minimum distance: %f" % min_distance)
         
-        linear_velocity = 0
-        angular_velocity = 0
-        
         if min_distance < 0.6:
-            self.collision_imminent = bool(True)
-            rospy.loginfo("Avoiding Obstacle")            
-            rate = rospy.Rate(10)
-            now = rospy.Time.now().to_sec()
-            end_time = now + 1  # Turn for one second
-            
-            while rospy.Time.now().to_sec() < end_time:
-                linear_velocity = 0
-                angular_velocity = 1
-                self.publish_twist_msg(linear_velocity, angular_velocity)
-                rate.sleep()
+            self.is_collision_imminent = bool(True)
+            rospy.loginfo("Avoiding Obstacle")    
+        
+            if (self.has_avoided_rotate == bool(False)):
+                if (self.avoid_count < 3):
+                    self.avoid_rotate(1)
+                else:
+                    self.avoid_rotate(-1)
+            else:
+                self.avoid_straight()
         else:
-            self.collision_imminent = bool(False)
+            self.is_collision_imminent = bool(False)
             rospy.loginfo("No obstacles")
-
-
+            
+            
+    def avoid_rotate(self, angular_velocity):
+        
+        print "Avoiding - Rotating"
+        rate = rospy.Rate(10)
+        now = rospy.Time.now().to_sec()
+        end_time = now + 1  # Turn for one second
+        
+        while rospy.Time.now().to_sec() < end_time:
+            linear_velocity = 0
+            self.is_avoiding_straight = bool(False)
+            self.is_avoiding_rotate = bool(True)
+            self.publish_twist_msg(linear_velocity, angular_velocity)
+            rate.sleep()
+            
+        self.has_avoided_rotate = bool(True)
+        self.avoid_count = self.avoid_count + 1
+        
+        
+    def avoid_straight(self):
+      
+        print "Avoiding - Going Straight"
+        rate = rospy.Rate(10)
+        now = rospy.Time.now().to_sec()
+        end_time = now + 2  # Go straight for 2 seconds
+        
+        while rospy.Time.now().to_sec() < end_time:
+            linear_velocity = 1
+            angular_velocity = 0
+            self.is_avoiding_straight = bool(True)
+            self.is_avoiding_rotate = bool(False)
+            self.publish_twist_msg(linear_velocity, angular_velocity)
+            rate.sleep()
+        
+        self.has_avoided_rotate = bool(False)
+        self.avoid_count = self.avoid_count + 1
+        
 
 if __name__ == '__main__':
     rospy.init_node("predator")
