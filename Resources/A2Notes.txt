@@ -1,14 +1,14 @@
 ---DESIGN---
 Functional/Technical aspects, Implementation details of:
 1) Opponent detection			- Green hat recognition, Searching, Last-known location
-						 (TODO: Fix jerky course corrections, buffer img/centroids,
-							Only rotate twice (Odom topic?), then Mapping)
+						 (TODO: Fix jerky course corrections, buffer img?
+							Only rotate twice (Odom???), then Mapping)
 2) Obstacle avoidance			- 	 (TODO: DEBUG LASERSCAN)
 3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
 4) "Choice of relevant parameters"	- Linear/Angular Speeds, search rotation amount?
 5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below)
 
----IMPLEMENTATION---
+---CODE IMPLEMENTATION---
 1) Well-commented and structured code	-	 (TODO: Add adequate comments)
 
 ---TESTING---
@@ -16,26 +16,29 @@ Functional/Technical aspects, Implementation details of:
 2) Performance (time/distance accuracy)
 3) Limitations
 4) Possible improvements
-5) Influence of system parameters (Speed, CPU speeds, controller values)
+5) Influence of system parameters
 
 ---REPORT---
 2500 words covering:
 1) Technical Design
 	a) Implementation details and relevant parameters for:
-		i) Opponent detection (Spatial awareness; reasoning whether to: search vs. pursue, search in last known
-		   direction of prey, search on spot first then traverse map, use bumper if to catch prey if visible)
-		ii) Obstacle avoidance (Spatial awareness; reasoning whether to: pursue vs. avoid, combine avoidance
-		    tactics to prevent endless loops & getting stuck, check previous avoidance attempts)
+		i) Opponent detection
+		ii) Obstacle avoidance
 		iii) Player behaviour (Predator 'Search & Destroy')
 2) Testing & Evaluation
 	a) Functionality (efficient implementation)
 	b) Performance (time/distance accuracy)
 	c) Limitations
 	d) Possible improvements
-	e) Influence of system parameters (Speed, CPU speeds, controller values)
+	e) Influence of system parameters
 +) References (Textbooks, Websites)
 
----ADVANCED FUNCTIONALITY---
+---DEMONSTRATION---
+1) Structured
+2) Well-prepared
+3) Highlight features
+
+---EXTRA---
 1) Advanced object detection
 	-Colour-based learning
 	-Extra visual cues
@@ -46,11 +49,6 @@ Functional/Technical aspects, Implementation details of:
 3) 'Prey' Behaviour
 4) Spatial awareness
 	-Analysis of hiding places
-
----DEMONSTRATION---
-1) Structured
-2) Well-prepared
-3) Highlight features
 
 ---TO-DO---
 1) Implement AND DEBUG LaserScans, add bumper topic

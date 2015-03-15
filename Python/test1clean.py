@@ -10,8 +10,21 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 
-################### ADD 'BUMPER' SUBSCRIBER TO ENABLE "WIN CONDITION"
-################### 
+#from turtlebot_node.msg import TurtlebotSensorState
+#from kobuki_msgs.msg import BumperEvent
+
+### WHICH BUMPER TOPIC TO USE?
+#http://answers.ros.org/question/40187/turtlebot-random-wandering-with-collision-avoidance/
+#http://docs.ros.org/indigo/api/kobuki_msgs/html/msg/BumperEvent.html
+#https://github.com/wjwwood/pyturtlebot/blob/master/src/pyturtlebot/turtlebot.py
+#
+
+#bump = False
+
+# listen (adapted from line_follower
+#def processSensing(TurtlebotSensorState):
+#     global bump
+#     bump = TurtlebotSensorState.bumps_wheeldrops
 
 class KinectImage():
     """Holds image data and bool stating whether it contains Prey vehicle"""
@@ -19,6 +32,7 @@ class KinectImage():
     def __init__(self):
         self.img = 0
         self.has_green_hat = bool()
+        self.is_prey_escaping_view = bool()
         
         
 class Predator():
@@ -37,6 +51,7 @@ class Predator():
         self.is_avoiding_straight = bool(False)
         self.is_avoiding_rotate = bool(False)
         self.has_avoided_rotate = bool(False)
+#        self.has_bumped = bool(False)
         self.avoid_count = 0
         self.segmented_image = 0
         self.blob_size = 0
@@ -58,6 +73,29 @@ class Predator():
             callback=self.laser_callback,
             queue_size=1
         )
+#        self.bumper_sub = rospy.Subscriber(
+#            "/turtlebot_1/sensor_state",
+#            TurtlebotSensorState,
+#            processSensing
+#        )
+        
+#        listen
+#        global bump        
+#        while not rospy.is_shutdown():
+#            if bump==1:
+#                str = "RIGHT bumper, turn left? %s"%rospy.get_time()
+#                rospy.loginfo(str)
+#            elif bump==2:
+#                str = "LEFT bumper, turn right? %s"%rospy.get_time()
+#                rospy.loginfo(str)
+#            elif bump==3:
+#                str = "BOTH bumpers, turn left? %s"%rospy.get_time()
+#                rospy.loginfo(str)
+#            else:
+#                str = "NO BUMP, move straight? %s"%rospy.get_time()
+#                rospy.loginfo(str)
+#                bump = False
+#            rospy.sleep(0.25)
         
         
     # Takes SIM/BOT image to use for image recognition-based movement
@@ -78,27 +116,21 @@ class Predator():
         cv2.imshow('Binary Mask: Hat', self.segmented_image)
         
         if (img_binary_mask_normalised.has_green_hat):
-            print "Hat detected"            
-            img_split = self.split_kinect_image(img_binary_mask_normalised.img)            
-            movement_data = self.analyse_image(img_split)
-        
-          # Fix L-R jerkiness when hat found, to only correct when necessary:
-    ####### CREATE BUFFER IMAGE OF MASK'S MIDDLE 300 COLUMNS
-    ####### IF WHITE PIXEL SUM WITHIN BUFFER IMAGE RANGE IS VERY CLOSE TO BLOBSIZE
-    #######     PUBLISH TWIST MESSAGE
-    #######     PRINT "CORRECTED COURSE TO KEEP PREY IN ACCEPTABLE FIELD OF VIEW"
-    ####### ELSE
-    #######     PRINT "NO CORRECTION NEEDED, HAT WITHIN ACCEPTABLE FIELD OF VIEW"
+            print "Hat detected"
+            img_split = self.split_image_vertically(img_binary_mask_normalised.img)
+            movement_data = self.determine_movement_velocities(img_split)
             
-            #twist_msg = self.mean_twist(normalised_mean[0], normalised_mean[1])
-            #self.cmd_vel_pub.publish(twist_msg)
-            
-            if (self.is_collision_imminent != bool(True)):
-                self.publish_twist_msg(movement_data[0], movement_data[1])
+            if (self.is_collision_imminent == bool(False)):
+                if (img_binary_mask_normalised.is_prey_escaping_view == bool(True)):
+                    print "Correcting course"
+                    self.publish_twist_msg(movement_data[0], movement_data[1])
+                else:
+                    print "Correction unnecessary"
+                    self.publish_twist_msg(movement_data[0], 0)
             else:
                 print "Prey catching postponed to avoid obstacle"
         else:
-            if (self.is_collision_imminent != bool(True)):            
+            if (self.is_collision_imminent == bool(False)):            
                 print "No Hat detected"
                 self.search_for_prey()
             else:
@@ -119,7 +151,7 @@ class Predator():
         elif (self.last_relative_hat_location == "none"):
             angular_velocity = 1
             print "No previous Hat data"
-            print "Using default search motion..."
+            print "Searching with default motion..."
         else:
             angular_velocity = 0
         
@@ -128,6 +160,12 @@ class Predator():
         
     # Takes CV image, cleans, colour slices, and creates a binary mask of the green hat
     def find_green_hat(self, img_cv, img_height, img_width):
+        
+        img_centroid_x = img_width / 2
+        #img_centroid_y = img_height / 2    # USE TO ESTIMATE PREY DISTANCE?
+        
+        img_left_boundary_x = (img_width / 3)
+        img_right_boundary_x = (img_width / 3) * 2
         
         img_clean = cv2.GaussianBlur(img_cv, (5,5), 0)        
         img_hsv = cv2.cvtColor(img_clean, cv2.COLOR_BGR2HSV)
@@ -151,21 +189,57 @@ class Predator():
         self.segmented_image = img_binary_mask
         
         img_binary_mask_normalised = KinectImage()
-
         img_binary_mask_normalised.img = img_binary_mask / 255
         
         sum_pixels = np.sum(img_binary_mask_normalised.img)
         
         if (sum_pixels > 25):
             img_binary_mask_normalised.has_green_hat = bool(True)
+            
+            ### COMPARE IMAGE AND BLOB CENTROIDS
+            moments = cv2.moments(img_binary_mask_normalised.img)
+            moment_area = moments['m00']
+            
+            if(moment_area > 0.1):
+                img_binary_mask_centroid_x = int(moments['m10']/moments['m00'])
+                img_binary_mask_centroid_y = int(moments['m01']/moments['m00'])
+            else:
+                img_binary_mask_centroid_x = 0
+                img_binary_mask_centroid_y = 0
+            
+            if (img_binary_mask_centroid_x == 0 & img_binary_mask_centroid_y == 0):
+                print "BLOB not found"
+            else:
+                if img_binary_mask_centroid_x > img_centroid_x:
+                    print "BLOB right"
+                elif img_binary_mask_centroid_x < img_centroid_x:
+                    print "BLOB left"
+                
+            print "BLOB Centroid x:", img_binary_mask_centroid_x
+            print "CAM left boundary x:", img_left_boundary_x
+            print "CAM right boundary x:", img_right_boundary_x
+
+            if (img_binary_mask_centroid_x < img_left_boundary_x):
+                print "BLOB outside left boundary"
+                img_binary_mask_normalised.is_prey_escaping_view = bool(True)
+            elif(img_binary_mask_centroid_x > img_right_boundary_x):            
+                print "BLOB outside right boundary"
+                img_binary_mask_normalised.is_prey_escaping_view = bool(True)
+            else:
+                print "BLOB within boundaries"
+                img_binary_mask_normalised.is_prey_escaping_view = bool(False)
+            
         else:
             img_binary_mask_normalised.has_green_hat = bool(False)
+            img_binary_mask_normalised.is_prey_escaping_view = bool(False)
+            
+        print "Prey escaping view:", img_binary_mask_normalised.is_prey_escaping_view
         
         return img_binary_mask_normalised
         
         
-    # Takes a 640*480 image and returns two left and right side 320*480 images
-    def split_kinect_image(self, img_mask):        
+    # Takes one 640*480 image and returns its left and right 320*480 image halves
+    def split_image_vertically(self, img_mask):        
         
         img_mask_left = (img_mask[:,0:320])
         img_mask_right = (img_mask[:,321:640])
@@ -174,8 +248,8 @@ class Predator():
         
         return img_split
         
-    # METHOD DESCRIPTION    
-    def analyse_image(self, img_split):
+    # Takes left and right input images to decide angular & linear velocities
+    def determine_movement_velocities(self, img_split):
         
         img_mask_left = img_split[0]
         img_mask_right = img_split[1]        
@@ -233,7 +307,7 @@ class Predator():
         
         ranges = msg.ranges
         min_distance = np.nanmin(ranges)
-        rospy.loginfo("Minimum distance: %f" % min_distance)
+        #rospy.loginfo("Minimum distance: %f" % min_distance)
         
         if min_distance < 0.6:
             self.is_collision_imminent = bool(True)
@@ -248,7 +322,7 @@ class Predator():
                 self.avoid_straight()
         else:
             self.is_collision_imminent = bool(False)
-            rospy.loginfo("No obstacles")
+            #rospy.loginfo("No obstacles")
             
             
     def avoid_rotate(self, angular_velocity):
@@ -260,8 +334,8 @@ class Predator():
         
         while rospy.Time.now().to_sec() < end_time:
             linear_velocity = 0
-            self.is_avoiding_straight = bool(False)
             self.is_avoiding_rotate = bool(True)
+            self.is_avoiding_straight = bool(False)
             self.publish_twist_msg(linear_velocity, angular_velocity)
             rate.sleep()
             
@@ -295,3 +369,5 @@ if __name__ == '__main__':
     cv2.destroyAllWindows()
     
 # NAMING CONVENTIONS: https://www.python.org/dev/peps/pep-0008/#naming-conventions
+# MOMENTS: http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html
+# CENTROIDS: https://github.com/abidrahmank/OpenCV2-Python/blob/master/Official_Tutorial_Python_Codes/3_imgproc/moments.py
