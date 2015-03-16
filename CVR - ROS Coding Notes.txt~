@@ -17,3 +17,11 @@
 	Twist.angular.z
 +) Indexing:
 	left_img = x[np.array([0:img.width/2,:]), np.array([0:img.height/2,:])) ???
+
++) OPENCV HSV RANGES = H:0-180, S:0-255, V:0-255
+         http://docs.opencv.org/trunk/doc/py_tutorials/py_imgproc/py_colorspaces/py_colorspaces.html
+         MSPAINT HSV RANGES = H:0-240, S:0-240, V:0-240
+         GIMP HSV RANGES = H:0-360, S:0-100, V:0-100
+         http://www.technical-recipes.com/2011/tracking-coloured-objects-in-video-using-opencv/
+         CONVERTING: cvH = extH * ( extRange / cvRange )
+                     110 = 147  * (   180   /   240   )

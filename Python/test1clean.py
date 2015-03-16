@@ -17,7 +17,6 @@ from sensor_msgs.msg import Image
 #http://answers.ros.org/question/40187/turtlebot-random-wandering-with-collision-avoidance/
 #http://docs.ros.org/indigo/api/kobuki_msgs/html/msg/BumperEvent.html
 #https://github.com/wjwwood/pyturtlebot/blob/master/src/pyturtlebot/turtlebot.py
-#
 
 #bump = False
 
@@ -44,7 +43,8 @@ class Predator():
         
         self.bridge = CvBridge()
         cv2.namedWindow("Binary Mask: Hat", 1)
-        cv2.startWindowThread()        
+        cv2.namedWindow("Kinect Image", 1)
+        cv2.startWindowThread()
         
         self.last_relative_hat_location = "none"
         self.is_collision_imminent = bool(False)
@@ -52,23 +52,24 @@ class Predator():
         self.is_avoiding_rotate = bool(False)
         self.has_avoided_rotate = bool(False)
 #        self.has_bumped = bool(False)
+        self.hsv_ranges_used = "None"
         self.avoid_count = 0
         self.segmented_image = 0
         self.blob_size = 0
         
         self.cmd_vel_pub = rospy.Publisher(
-            "/turtlebot_1/cmd_vel",
+            "/cmd_vel",
             Twist,
             queue_size=1
         )
         self.image_sub = rospy.Subscriber(
-            "/turtlebot_1/camera/rgb/image_raw",
+            "/camera/rgb/image_color",
             Image,
             callback=self.image_callback,
             queue_size=1
         )
         self.laser_sub = rospy.Subscriber(
-            "/turtlebot_1/scan",
+            "/scan",
             LaserScan,
             callback=self.laser_callback,
             queue_size=1
@@ -110,6 +111,8 @@ class Predator():
             img_cv = self.bridge.imgmsg_to_cv2(img_kinect, "bgr8")
         except CvBridgeError, e:
             print e
+            
+        cv2.imshow('Kinect Image', img_cv)
         
         img_binary_mask_normalised = self.find_green_hat(img_cv, img_height, img_width)
         
@@ -170,21 +173,45 @@ class Predator():
         img_clean = cv2.GaussianBlur(img_cv, (5,5), 0)        
         img_hsv = cv2.cvtColor(img_clean, cv2.COLOR_BGR2HSV)
         
+
         bgr_green = np.uint8([[[0,255,0]]])
         hsv_green = cv2.cvtColor(bgr_green,cv2.COLOR_BGR2HSV)
         
-        lower_hue = hsv_green[0][0][0]-10
-        lower_sat = hsv_green[0][0][1]-155
-        lower_val = hsv_green[0][0][2]-155
+        lower_hue_sim = hsv_green[0][0][0]-10
+        lower_sat_sim = hsv_green[0][0][1]-155
+        lower_val_sim = hsv_green[0][0][2]-155
         
-        upper_hue = hsv_green[0][0][0]+10
-        upper_sat = hsv_green[0][0][1]
-        upper_val = hsv_green[0][0][2]
+        upper_hue_sim = hsv_green[0][0][0]+10
+        upper_sat_sim = hsv_green[0][0][1]
+        upper_val_sim = hsv_green[0][0][2]
+        self.hsv_ranges_used = "SIM"
+
+
+        lower_hue_bot = 72
+        lower_sat_bot = 25
+        lower_val_bot = 0#89
         
-        lower_green = np.array([lower_hue, lower_sat, lower_val])
-        upper_green = np.array([upper_hue, upper_sat, upper_val])
+        upper_hue_bot = 103
+        upper_sat_bot = 115
+        upper_val_bot = 255#166
+        
+        lower_green = np.array([lower_hue_bot, lower_sat_bot, lower_val_bot])
+        upper_green = np.array([upper_hue_bot, upper_sat_bot, upper_val_bot])
+        self.hsv_ranges_used = "BOT"
+        print "Using HSV ranges for", self.hsv_ranges_used
         
         img_binary_mask = cv2.inRange(img_hsv, lower_green, upper_green)
+        
+        #
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+        img_binary_mask_eroded = cv2.erode(img_binary_mask, kernel, iterations = 2)
+        img_binary_mask_opened = cv2.morphologyEx(img_binary_mask_eroded, cv2.MORPH_OPEN, kernel)
+        img_binary_mask_final = img_binary_mask_opened
+        
+        #
+        
+        img_binary_mask = img_binary_mask_final
         
         self.segmented_image = img_binary_mask
         
@@ -193,7 +220,7 @@ class Predator():
         
         sum_pixels = np.sum(img_binary_mask_normalised.img)
         
-        if (sum_pixels > 25):
+        if (sum_pixels > 200):
             img_binary_mask_normalised.has_green_hat = bool(True)
             
             ### COMPARE IMAGE AND BLOB CENTROIDS
