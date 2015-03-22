@@ -1,12 +1,11 @@
 ---DESIGN---
 Functional/Technical aspects, Implementation details of:
 1) Opponent detection			- Green hat recognition, Searching, Last-known location
-						 (TODO: Fix jerky course corrections (buffer img/centroids),
-							Only rotate twice (Odom topic?), then Mapping)
-2) Obstacle avoidance			- 	 (TODO: DEBUG LASERSCAN)
+						 (TODO: GMapping?)
+2) Obstacle avoidance			- 	 (TODO: Debug Lasercan)
 3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
-4) "Choice of relevant parameters"	- Linear/Angular Speeds, search rotation amount?
-5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below)
+4) "Choice of relevant parameters"	-	 (TODO: Note Linear/Angular Speeds, search rotation amounts?)
+5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below; rudimentary 'Prey'?)
 
 ---IMPLEMENTATION---
 1) Well-commented and structured code	-	 (TODO: Add adequate comments)
@@ -36,14 +35,14 @@ Functional/Technical aspects, Implementation details of:
 +) References (Textbooks, Websites)
 
 ---ADVANCED FUNCTIONALITY---
-1) Advanced object detection
+1) 'Prey' Behaviour
+2) Behaviour coordination
+	-Finite State Machine
+3) Advanced object detection
 	-Colour-based learning
 	-Extra visual cues
 	-Multi-object handling
 	-Localisation
-2) Behaviour coordination
-	-Finite State Machine
-3) 'Prey' Behaviour
 4) Spatial awareness
 	-Analysis of hiding places
 
@@ -53,10 +52,12 @@ Functional/Technical aspects, Implementation details of:
 3) Highlight features
 
 ---TO-DO---
-1) Implement AND DEBUG LaserScans, add bumper topic
+1) Add WIN condition (Full Hat (pixel count) in view, low laserscan vals)
+2) Debug LaserScans to prevent loops and contradictory messages
 	- Obstacle Avoidance
 	- Prevent Predator from hitting prey
+3) Add simple Prey mode
+4) Add simple GMapping
+?) Add bumper topic to give robust conditions for prey catching?
 ?) Limit search rotations to 2 for efficiency
 	- Next step is implementing Mapping and traversing blind spots
-?) Fix jerky course corrections
-	- Set up buffer image of middle columns, if blob is within buffer, don't post Twist message

@@ -26,8 +26,6 @@
          CONVERTING: cvH = extH * ( extRange / cvRange )
                      110 = 147  * (   180   /   240   )
 
-ER, ER, OP 3^3 ELL
-
 NEW
 LH: 145	= 72.5
 UH: 205	= 102.5
@@ -59,3 +57,7 @@ Upper	46     * (255 / 100)
 	46*2.55=117.3
 
 CV2 V RANGE = 107.1 - 117.3
+
+WIN CONDITION RANGES:
+Pixel Count:		
+Min Scan Distance:	

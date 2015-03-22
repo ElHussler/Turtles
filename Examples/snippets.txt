@@ -1,0 +1,41 @@
+# MORPHOLOGICAL OPEN TO CLEAN IMAGE
+kernel = numpy.ones((5,5),numpy.uint8)
+hsv_thresh = cv2.morphologyEx(hsv_thresh, cv2.MORPH_OPEN, kernel)
+
+# FIND CENTROID OF BINARY MASK
+M = cv2.moments(hsv_thresh)
+num = M['m00']
+
+if num > 0.1:
+   centroid_x = int(M['m10']/M['m00'])
+   centroid_y = int(M['m01']/M['m00'])
+else:
+   centroid_x = 0
+   centroid_y = 0
+
+centX = 320
+centY = 240
+
+if centroid_x == 0 & centroid_y == 0:
+   print "not found"
+elif centroid_x > centX:
+   print "to the right"
+      if centroid_y > 15:
+         print "get closer"
+      else:
+         print "touching"
+elif centroid_x < centX:
+   print "to the left"
+      if centroid_y > 15:
+         print "get closer"
+      else:
+         print "not touching"
+
+# ROTATE TO CENTER PREY
+Xdif = robot_centX - cam_centX
+if (Xdif == 0 and robot_centY > 50):
+    twist_msg.linear.x = 0.3  # Set linear movement
+    twist_msg.angular.z = 0  
+else:        
+    Xdif = float(Xdif) / 320.0 * math.pi #find roate difference
+    twist_msg.angular.z = Xdif* -1 #rotate amount of difference

@@ -1,0 +1,43 @@
+JB
+
+A predator behaviour has been implemented.
+Criterion 1
+image processing
+
+HSL filtering with excellently robust post processing pipeline
+robotic behaviour
+
+excellent design
+addtional features
+
+excellent localisation using Bayesian filtering and path finding
+
+Mark for Criterion 1: 98 of 100
+Criterion 2
+comments
+
+your code has excellent comments
+structure
+
+your code is excellently structured applying software engineering principles very well
+performance in demo
+
+very impressive demonstration, robust behaviour with many additional features
+
+Mark for Criterion 2: 100 of 100
+Criterion 3
+structure
+
+very good structure, although the processing steps could have been outlined a bit clearer
+writing quality
+
+excellent writing
+evaluation
+
+excellent quantitative evaluation
+
+Mark for Criterion 3: 96 of 100
+
+bonus marks for workshop engagement: 4
+
+TOTAL MARK: 100
