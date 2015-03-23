@@ -42,6 +42,7 @@ class Predator():
         self.bridge = CvBridge()
         cv2.namedWindow("Binary Mask: Hat", 1)
         cv2.namedWindow("Kinect Image", 1)
+        cv2.namedWindow("Image Window", 1)
         cv2.startWindowThread()
         
         self.last_relative_hat_location = "none"
@@ -53,8 +54,10 @@ class Predator():
         self.has_avoided_reverse = bool(False)
         self.is_avoiding_rotate = bool(False)
         self.has_avoided_rotate = bool(False)
+        self.is_state_changed = bool(False)
         self.is_prey_caught = bool(False)
         self.hsv_ranges_used = "None"
+        self.segmented_image_contours = 0
         self.segmented_image = 0
         self.avoid_count = 0
         self.blob_size = 0
@@ -114,41 +117,41 @@ class Predator():
         
         if (self.is_prey_caught == bool(False)):
             print "================ NEW IMAGE ================"        
-            
+                
             img_height = img_kinect.height
             img_width = img_kinect.width
-            
+                
             try:
                 img_cv = self.bridge.imgmsg_to_cv2(img_kinect, "bgr8")
             except CvBridgeError, e:
                 print e
             
             img_binary_mask_normalised = self.find_green_hat(img_cv, img_height, img_width)
-                
+                    
             cv2.imshow('Kinect Image', img_cv)            
             cv2.imshow('Binary Mask: Hat', self.segmented_image)
             
             if (img_binary_mask_normalised.has_green_hat):
-                #print "Hat detected"
+                print "Hat detected"
                 img_split = self.split_image_vertically(img_binary_mask_normalised.img)
                 movement_data = self.determine_movement_velocities(img_split)
                 
                 if (self.is_collision_imminent == bool(False)):
                     if (img_binary_mask_normalised.is_prey_escaping_view == bool(True)):
                         if (self.is_course_correction_disabled == bool(False)):
-                            #print "Correcting course"
-                            self.publish_twist_msg(movement_data[0], movement_data[1])
+                            print "Correcting course"
+                            self.publish_twist_msg(0,0)#movement_data[0], movement_data[1])
                         else:
                             print "Course Correction disabled to circumvent obstacle"
-                            self.publish_twist_msg(movement_data[0], 0)
+                            self.publish_twist_msg(0,0)#movement_data[0], 0)                            
                     else:
-                        #print "Correction unnecessary"
-                        self.publish_twist_msg(movement_data[0], 0)
+                        print "Correction unnecessary"
+                        self.publish_twist_msg(0,0)#movement_data[0], 0)
                 else:
                     print "Prey catching postponed to avoid obstacle"
             else:
                 if (self.is_collision_imminent == bool(False)):            
-                    #print "No Hat detected"
+                    print "No Hat detected"
                     self.search_for_prey()
                 else:
                     print "Prey searching postponed to avoid obstacle"
@@ -159,16 +162,16 @@ class Predator():
         
         if (self.last_relative_hat_location == "left"):
             angular_velocity = 0.7
-            #print "Hat last seen on", self.last_relative_hat_location
-            #print "Looking", self.last_relative_hat_location
+            print "Hat last seen on", self.last_relative_hat_location
+            print "Looking", self.last_relative_hat_location
         elif (self.last_relative_hat_location == "right"):
             angular_velocity = -0.7
-            #print "Hat last seen on", self.last_relative_hat_location
-            #print "Looking", self.last_relative_hat_location
+            print "Hat last seen on", self.last_relative_hat_location
+            print "Looking", self.last_relative_hat_location
         elif (self.last_relative_hat_location == "none"):
             angular_velocity = 0.7
-            #print "No previous Hat data"
-            #print "Searching with default motion..."
+            print "No previous Hat data"
+            print "Searching with default motion..."
         else:
             angular_velocity = 0
         
@@ -191,29 +194,29 @@ class Predator():
         hsv_green = cv2.cvtColor(bgr_green,cv2.COLOR_BGR2HSV)
         
         ### HSV ranges for green hat on simulator turtlebot
-        lower_hue_sim = hsv_green[0][0][0]-10
-        lower_sat_sim = hsv_green[0][0][1]-155
-        lower_val_sim = hsv_green[0][0][2]-155       
-        upper_hue_sim = hsv_green[0][0][0]+10
-        upper_sat_sim = hsv_green[0][0][1]
-        upper_val_sim = hsv_green[0][0][2]        
-        lower_green_sim = np.array([lower_hue_sim, lower_sat_sim, lower_val_sim])
-        upper_green_sim = np.array([upper_hue_sim, upper_sat_sim, upper_val_sim])
-        self.hsv_ranges_used = "SIM"
+#        lower_hue_sim = hsv_green[0][0][0]-10
+#        lower_sat_sim = hsv_green[0][0][1]-155
+#        lower_val_sim = hsv_green[0][0][2]-155       
+#        upper_hue_sim = hsv_green[0][0][0]+10
+#        upper_sat_sim = hsv_green[0][0][1]
+#        upper_val_sim = hsv_green[0][0][2]        
+#        lower_green_sim = np.array([lower_hue_sim, lower_sat_sim, lower_val_sim])
+#        upper_green_sim = np.array([upper_hue_sim, upper_sat_sim, upper_val_sim])
+#        self.hsv_ranges_used = "SIM"
 
         ### HSV ranges for green hat on physical turtlebot
-#        lower_hue_bot = 72
-#        lower_sat_bot = 25
-#        lower_val_bot = 0#89        
-#        upper_hue_bot = 103
-#        upper_sat_bot = 115
-#        upper_val_bot = 255#166        
-#        lower_green_bot = np.array([lower_hue_bot, lower_sat_bot, lower_val_bot])
-#        upper_green_bot = np.array([upper_hue_bot, upper_sat_bot, upper_val_bot])
-#        self.hsv_ranges_used = "BOT"
+        lower_hue_bot = 72
+        lower_sat_bot = 25
+        lower_val_bot = 0#89        
+        upper_hue_bot = 103
+        upper_sat_bot = 115
+        upper_val_bot = 255#166        
+        lower_green_bot = np.array([lower_hue_bot, lower_sat_bot, lower_val_bot])
+        upper_green_bot = np.array([upper_hue_bot, upper_sat_bot, upper_val_bot])
+        self.hsv_ranges_used = "BOT"
         
         ### Create mask using hsv image and upper & lower hsv ranges
-        img_binary_mask = cv2.inRange(img_hsv, lower_green_sim, upper_green_sim)
+        img_binary_mask = cv2.inRange(img_hsv, lower_green_bot, upper_green_bot)
         #print "Using HSV ranges for", self.hsv_ranges_used
         
         ### MORPHOLOGICAL EROSION(x2) & OPENING with 3*3 elliptical kernel
@@ -231,10 +234,26 @@ class Predator():
         
         sum_pixels = np.sum(img_binary_mask_normalised.img)
         self.blob_size = sum_pixels
-        #print "Hat pixels:", self.blob_size
+        print "Green pixels:", self.blob_size
         
         ### Decide whether green hat is in view
-        if (sum_pixels > 20):
+        
+########IF BIGGEST COMPONENT HAS MORE THAN X PIXELS...    
+        largest_blob = 0        
+        
+        binary_contours, hierarchy = cv2.findContours(self.segmented_image.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        
+        for cnt in binary_contours:
+            a = cv2.contourArea(cnt)
+            if a > 100.0:
+                cv2.drawContours(self.segmented_image_contours, cnt, -1, (255, 0, 0))
+                if (a > largest_blob):
+                    largest_blob = a
+            print "blob area size:", a
+            print "largest blob:", largest_blob
+        cv2.imshow("Image Window", self.segmented_image_contours)
+        
+        if (sum_pixels > 500):
             img_binary_mask_normalised.has_green_hat = bool(True)
 
             ### Facilitate course corrections due to Predator/Prey movement            
@@ -342,13 +361,13 @@ class Predator():
                 linear_velocity = -0.6
                 
             if (angular_velocity > 1):
-                angular_velocity = 0.5
+                angular_velocity = 1
             
             if (angular_velocity < -1):
-                angular_velocity = -0.5
+                angular_velocity = -1
         
-        max_linear_velocity = float(0.2)#float(0.6)
-        max_angular_velocity = np.pi/6#np.pi/4
+        max_linear_velocity = float(0.2)#6)
+        max_angular_velocity = np.pi/6#4
         
         twist_msg = Twist()
         twist_msg.linear.x = max_linear_velocity * linear_velocity
@@ -361,29 +380,40 @@ class Predator():
         
         if (self.is_prey_caught == bool(False)):
             ranges = msg.ranges
-            print ""
-            print "Ranges:", ranges
+#            print ""
+#            print "Ranges:", ranges
             
             ranges_count = len(ranges)
             
-            min_distance = msg.range_min
-            print "Minimum distance:", min_distance
+            min_distance = np.nanmin(ranges)
+#            print "Minimum distance:", min_distance
             
-            if (min_distance < 0.6):            
-                ranges_left = ranges[ranges_count/2:ranges_count]
+            if (min_distance < 0.5):
                 ranges_right = ranges[0:(ranges_count/2)-1]
+                ranges_left = ranges[ranges_count/2:ranges_count]
 #                print ""
-#                print "Ranges Left:", ranges_left
+#                print "Ranges Left:"
+#                print "", ranges_left
 #                print ""
-#                print "Ranges Right:", ranges_right
+#                print "Ranges Right:"
+#                print "", ranges_right
                 
-                mean_range_left = np.sum(ranges_left)
-                mean_range_right = np.sum(ranges_right)
-            
-                if (mean_range_left > mean_range_right):
-                    self.current_obstacle_location = "RIGHT"
-                else:                
+#                mean_range_left = (np.sum(ranges_left) / len(ranges_left))
+#                print "Mean Scan distance LEFT:", mean_range_left
+#                mean_range_right = (np.sum(ranges_right) / len(ranges_left))
+#                print "Mean Scan distance RIGHT:", mean_range_right
+#            
+#                if (mean_range_left > mean_range_right):
+#                    self.current_obstacle_location = "RIGHT"
+#                else:                
+#                    self.current_obstacle_location = "LEFT"
+                
+                if (min_distance in ranges_left):
                     self.current_obstacle_location = "LEFT"
+                elif (min_distance in ranges_right):
+                    self.current_obstacle_location = "RIGHT"
+                else:
+                    print "MIN DISTANCE NOT IN EITHER ARRAY?!?!?!?!?!"
                 
                 if (self.blob_size > 4000):
                     if (self.blob_size < 10000):
@@ -435,7 +465,7 @@ class Predator():
 #            turn_direction = -1
         
         turn_direction = 1
-        if (self.current_obstacle_location == "RIGHT"):
+        if (self.current_obstacle_location == "LEFT"):
             turn_direction = -1
         
         while rospy.Time.now().to_sec() < end_time:
@@ -487,7 +517,7 @@ class Predator():
         
         while rospy.Time.now().to_sec() < end_time:
             linear_velocity = 0
-            angular_velocity = 2
+            angular_velocity = 4
             self.publish_twist_msg(linear_velocity, angular_velocity)
             rate.sleep()
             
@@ -496,7 +526,7 @@ class Predator():
         
         while rospy.Time.now().to_sec() < end_time:
             linear_velocity = 0
-            angular_velocity = -2
+            angular_velocity = -4
             self.publish_twist_msg(linear_velocity, angular_velocity)
             rate.sleep()
             
@@ -508,7 +538,7 @@ if __name__ == '__main__':
     rospy.init_node("predator")
     
     predator_bot = Predator(rospy.get_name())
-    predator_bot.hunt_sim()
+    predator_bot.hunt_bot()
     
     rospy.spin()
     cv2.destroyAllWindows()
