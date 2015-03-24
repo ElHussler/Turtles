@@ -1,7 +1,7 @@
 ---DESIGN---
 Functional/Technical aspects, Implementation details of:
 1) Opponent detection			- Green hat recognition, Searching, Last-known location
-						 (TODO: Prey)
+						 (TODO: GMapping?)
 2) Obstacle avoidance			- 	 (TODO: Debug Lasercan)
 3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
 4) "Choice of relevant parameters"	-	 (TODO: Note Linear/Angular Speeds, search rotation amounts?)
