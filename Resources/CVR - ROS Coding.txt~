@@ -12,15 +12,12 @@
   SEV	 source ~/catkin_ws/devel/setup.bash
 
 ---SIM/TURTLEBOT, IDE, CODE FILES---
-1a) Run roscore for simulator:
-	roscore
-1b) Run turtlebot setup code:
-	see ---TURTLEBOT SETUP, CONNECT---
 2) NT, SEV, Run Spyder
 	source ~/catkin_ws/devel/setup.bash
 	spyder
 3) Create and save .py file
-4) Make script executable e.g:
+4) NT, SEV, Make script executable e.g:
+	source ~/catkin_ws/devel/setup.bash
 	chmod a+x ~/catkin_ws/src/commanding_velocity/scripts/<filename>.py
 
 ---RUN CODE---

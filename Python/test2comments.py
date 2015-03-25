@@ -21,7 +21,7 @@ class KinectImage():
         
         
 class Predator():
-    """Predator vehicle with search, recognition, movement, obstacle avoidance"""
+    """Predator vehicle with opponent detection (search, recognition, pursuit) & obstacle avoidance"""
 
     # Instantiate class variables
     cmd_vel_pub = 0
@@ -56,6 +56,8 @@ class Predator():
         self.minimum_distance = float()
         self.hsv_ranges_used = "None"
 
+        self.search_advance_count = 0
+        self.search_rotate_count = 0
         self.search_count = 0
         self.avoid_count = 0
         self.avoidance_timer = 0
@@ -83,6 +85,12 @@ class Predator():
             "/turtlebot_1/scan",
             LaserScan,
             callback = self.laser_callback,
+            queue_size = 1
+        )
+        self.bump_subscriber = rospy.Subscriber(
+            '/turtlebot_1/mobile_base/events/bumper',
+            BumperEvent,
+            callback = self.bumper_callback,
             queue_size = 1
         )
        
@@ -142,6 +150,7 @@ class Predator():
             
             if (img_binary_mask_normalised.is_prey_in_view):
                 print "Hat detected"
+                #self.is_prey_in_vicinity = True
                 img_split = self.split_image_vertically(img_binary_mask_normalised.img)
                 movement_data = self.determine_movement_velocities(img_split)
                 
@@ -185,49 +194,47 @@ class Predator():
         
         print "Prey in vicinity:", self.is_prey_in_vicinity
         
-        if (self.search_count == 0):
+        if (self.search__rotate_count == 0):
             self.is_prey_in_vicinity = True
         
         if (self.is_prey_in_vicinity):
 
             print "Searching immediate vicinity"
             
-            rate = rospy.Rate(10)
-            now = rospy.Time.now().to_sec()
-            end_time = now + 12
+#            rate = rospy.Rate(10)
+#            now = rospy.Time.now().to_sec()
+#            end_time = now + 12
             
-            if (self.search_count == 0):
+            if (self.search__rotate_count == 0):
                 print "First Search - Searching..."
             elif (self.last_relative_hat_location == "left" or self.last_relative_hat_location == "right"):
-                print "Looking in last relative Hat location:", self.last_relative_hat_location
+                print "Searching last relative Hat location:", self.last_relative_hat_location
             else:
                 print "No previous Hat data - Searching..."
             
-            while ((rospy.Time.now().to_sec() < end_time) and not rospy.is_shutdown()):
-                print "Time now:", rospy.Time.now().to_sec()
-                print "End time:", end_time
-                while ((rospy.Time.now().to_sec() < end_time)
-                        and not self.is_prey_in_view
-                        and not rospy.is_shutdown()):
-                    if (self.last_relative_hat_location == "left"):
-                        angular_velocity = 0.25
-                        #print "Looking in last relative Hat location:", self.last_relative_hat_location
-                    elif (self.last_relative_hat_location == "right"):
-                        angular_velocity = -0.25
-                        #print "Looking in last relative Hat location:", self.last_relative_hat_location
-                    elif (self.last_relative_hat_location == "none"):
-                        angular_velocity = 0.25
-                        #print "No previous Hat data - Searching..."
-                    else:
-                        angular_velocity = 0
+            #while ((rospy.Time.now().to_sec() < end_time)
+                    #and not self.is_prey_in_view 
+                    #and not rospy.is_shutdown()):
+                #print "Time now:", rospy.Time.now().to_sec()
+                #print "End time:", end_time
+                #while ((rospy.Time.now().to_sec() < end_time)
+                        #and not self.is_prey_in_view
+                        #and not rospy.is_shutdown()):
+            angular_velocity = 0.25
+            if (self.last_relative_hat_location == "right"):
+                angular_velocity = -0.25
                     
-                    self.publish_twist_msg(0, angular_velocity)
-                    rate.sleep()
+            self.publish_twist_msg(0, angular_velocity)
+                #rate.sleep()
+                
+            if (self.search_rotate_count > 2):
+                self.is_prey_in_vicinity = False
         else:
             print "Searching beyond immediate vicinity"
             self.publish_twist_msg(float(1), float(0))
+            self.search_advance_count = self.search_advance_count + 1
             
-        self.search_count = self.search_count + 1
+        self.search_count = self.search_advance_count + self.search_rotate_count
         
     # Takes CV image, cleans, colour slices, and creates a binary mask of the green hat
     def find_green_hat(self, img_cv, img_height, img_width):
@@ -242,33 +249,34 @@ class Predator():
         img_hsv = cv2.cvtColor(img_clean, cv2.COLOR_BGR2HSV)
         
         ### HSV ranges for green hat on simulator turtlebot
-#        bgr_green = np.uint8([[[0,255,0]]])
-#        hsv_green = cv2.cvtColor(bgr_green,cv2.COLOR_BGR2HSV)
-#        
-#        lower_hue_sim = hsv_green[0][0][0]-10
-#        lower_sat_sim = hsv_green[0][0][1]-155
-#        lower_val_sim = hsv_green[0][0][2]-155       
-#        upper_hue_sim = hsv_green[0][0][0]+10
-#        upper_sat_sim = hsv_green[0][0][1]
-#        upper_val_sim = hsv_green[0][0][2]
+        bgr_green = np.uint8([[[0,255,0]]])
+        hsv_green = cv2.cvtColor(bgr_green,cv2.COLOR_BGR2HSV)
         
-#        lower_green_sim = np.array([lower_hue_sim, lower_sat_sim, lower_val_sim])
-#        upper_green_sim = np.array([upper_hue_sim, upper_sat_sim, upper_val_sim])
-#        self.hsv_ranges_used = "SIM"
+        lower_hue_sim = hsv_green[0][0][0]-10
+        lower_sat_sim = hsv_green[0][0][1]-155
+        lower_val_sim = hsv_green[0][0][2]-155       
+        upper_hue_sim = hsv_green[0][0][0]+10
+        upper_sat_sim = hsv_green[0][0][1]
+        upper_val_sim = hsv_green[0][0][2]
+        
+        lower_green_sim = np.array([lower_hue_sim, lower_sat_sim, lower_val_sim])
+        upper_green_sim = np.array([upper_hue_sim, upper_sat_sim, upper_val_sim])
+        self.hsv_ranges_used = "SIM"
 
         ### HSV ranges for green hat on physical turtlebot
-        lower_hue_bot = 72
-        lower_sat_bot = 25
-        lower_val_bot = 0#89        
-        upper_hue_bot = 103
-        upper_sat_bot = 115
-        upper_val_bot = 255#166        
-        lower_green_bot = np.array([lower_hue_bot, lower_sat_bot, lower_val_bot])
-        upper_green_bot = np.array([upper_hue_bot, upper_sat_bot, upper_val_bot])
-        self.hsv_ranges_used = "BOT"
+#        lower_hue_bot = 72
+#        lower_sat_bot = 25
+#        lower_val_bot = 0#89        
+#        upper_hue_bot = 103
+#        upper_sat_bot = 115
+#        upper_val_bot = 255#166        
+#        lower_green_bot = np.array([lower_hue_bot, lower_sat_bot, lower_val_bot])
+#        upper_green_bot = np.array([upper_hue_bot, upper_sat_bot, upper_val_bot])
+#        self.hsv_ranges_used = "BOT"
         
         ### Create mask using hsv image and upper & lower hsv ranges
-        img_binary_mask = cv2.inRange(img_hsv, lower_green_bot, upper_green_bot)
+        img_binary_mask = cv2.inRange(img_hsv, lower_green_sim, upper_green_sim)
+#        img_binary_mask = cv2.inRange(img_hsv, lower_green_bot, upper_green_bot)
         #print "Using HSV ranges for", self.hsv_ranges_used
         
         ### MORPHOLOGICAL EROSION(x2) & OPENING with 3*3 elliptical kernel
@@ -346,7 +354,7 @@ class Predator():
         else:
             img_binary_mask_normalised.is_prey_in_view = False
             img_binary_mask_normalised.is_prey_escaping_view = False
-            self.is_prey_in_vicinity = False
+            #self.is_prey_in_vicinity = False
             
         #print "Prey escaping view:", img_binary_mask_normalised.is_prey_escaping_view
         
@@ -630,7 +638,7 @@ if __name__ == '__main__':
     rospy.init_node("predator")
     
     predator_bot = Predator(rospy.get_name())
-    predator_bot.hunt_bot()
+    predator_bot.hunt_sim()
     
     rospy.spin()
     cv2.destroyAllWindows()
