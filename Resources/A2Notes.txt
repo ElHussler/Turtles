@@ -1,16 +1,13 @@
----DESIGN---
+---DESIGN & IMPLEMENTATION---
 Functional/Technical aspects, Implementation details of:
-1) Opponent detection			- Green hat recognition, Searching, Last-known location
-						 (TODO: Prey)
-2) Obstacle avoidance			- 	 (TODO: Debug Lasercan)
-3) Player behaviour (attack/escape)	- Attack (TODO: LaserScan to stop from hitting prey)
-4) "Choice of relevant parameters"	-	 (TODO: Note Linear/Angular Speeds, search rotation amounts?)
-5) Additional functionality		- 	 (TODO: Add functions from 'Extra' section below; rudimentary 'Prey'?)
+1) Opponent detection
+2) Obstacle avoidance
+3) Player behaviour (attack/escape)
+4) "Choice of relevant parameters"
+5) Additional functionality
+6) Well-commented and structured code
 
-WHAT I USED, WHY I USED IT, ALTERNATIVES I COULD'VE USED
-
----IMPLEMENTATION---
-1) Well-commented and structured code	-	 (TODO: Add adequate comments)
+WHAT I USED, WHY I USED IT, WHAT ELSE I COULD'VE USED
 
 ---TESTING & EVALUATION---
 1) Functionality (efficient implementation)
@@ -23,11 +20,9 @@ WHAT I USED, WHY I USED IT, ALTERNATIVES I COULD'VE USED
 2500 words covering:
 1) Technical Design
 	a) Implementation details and relevant parameters for:
-	    +) Player behaviours (Predator 'Search & Destroy', Prey 'Run & Hide')
-		i) Opponent detection (Spatial awareness; reasoning whether to: search vs. pursue, search in last known
-		   direction of prey, search on spot first then traverse map, use bumper if to catch prey if visible)
-		ii) Obstacle avoidance (Spatial awareness; reasoning whether to: pursue vs. avoid, combine avoidance
-		    tactics to prevent endless loops & getting stuck, check previous avoidance attempts)
+	    +) Player behaviours
+		i) Opponent detection
+		ii) Obstacle avoidance
 2) Testing & Evaluation
 	a) Functionality (efficient implementation)
 	b) Performance (time/distance accuracy)
@@ -37,27 +32,22 @@ WHAT I USED, WHY I USED IT, ALTERNATIVES I COULD'VE USED
 +) References (Textbooks, Websites)
 
 ---ADVANCED FUNCTIONALITY---
-1) 'Prey' Behaviour
-2) Behaviour coordination
+1) Behaviour coordination
 	-Finite State Machine
-3) Advanced object detection
-	-Colour-based learning
-	-Extra visual cues
-	-Multi-object handling
-	-Localisation
-4) Spatial awareness
-	-Analysis of hiding places
+2) 'Prey' Behaviour
+3) Spatial awareness
+	-Search/pursue/avoid
+	-Search in last known prey location
+	-Traverse area if can't see prey
+	-Escape condition if gets stuck trying to avoid
+
+
+
 
 ---DEMONSTRATION---
 1) Structured
 2) Well-prepared
 3) Highlight features
 
----TO-DO---
-1) Improve Search: If it can't see anything, go forward for set time then search again
-		rotate, forward, rotate, forward, rotate
-2) Add simple Prey mode
 
-?) Added bumper topic to give robust conditions for prey catching!
-?) Limit search rotations to 2 for efficiency
-	- Next step is implementing Mapping and traversing blind spots
+
